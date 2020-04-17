@@ -1,0 +1,390 @@
+---
+title: "Analise Tecnica"
+author: "Daniel / Patricia"
+date: "05/04/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+# packages
+require(ggplot2)
+require(dplyr)
+require(psych)
+require(skimr)
+
+```
+
+
+## Avaliando Dados:
+
+Utilizando dados que contem informações residênciais de Melbourne, buscaremos a geração um modelo preditivo para preços residênciais. A base de dados contem dados de 34.858 residências ao longo do período de 2016 à 2018.
+
+Os dados foram obtidos atravÃ©s do site https://www.domain.com.au/ e disponibilizados no kaggle no link https://www.kaggle.com/anthonypino/melbourne-housing-market.
+
+```{r include=FALSE}
+## carregamento ####
+
+setwd('C:\\Users\\Daniel\\Documents\\EXEMPLARIA\\EXERCICIOS\\3_MELBOURNE')
+dados <- read.csv('data.csv', header = T)
+df <- as.data.frame(dados)
+```
+
+
+A base de dados possui 21 atributos, que sÃo:
+
+Suburb: Suburb
+
+Address: Address
+
+Rooms: Number of rooms
+
+Price: Price in Australian dollars
+
+Method:
+S - property sold;
+SP - property sold prior;
+PI - property passed in;
+PN - sold prior not disclosed;
+SN - sold not disclosed;
+NB - no bid;
+VB - vendor bid;
+W - withdrawn prior to auction;
+SA - sold after auction;
+SS - sold after auction price not disclosed.
+N/A - price or highest bid not available.
+
+Type:
+br - bedroom(s);
+h - house,cottage,villa, semi,terrace;
+u - unit, duplex;
+t - townhouse;
+dev site - development site;
+o res - other residential.
+
+SellerG: Real Estate Agent
+
+Date: Date sold
+
+Distance: Distance from CBD in Kilometres
+
+Regionname: General Region (West, North West, North, North east)
+
+Propertycount: Number of properties that exist in the suburb.
+
+Bedroom2 : Scraped # of Bedrooms (from different source)
+
+Bathroom: Number of Bathrooms
+
+Car: Number of carspots
+
+Landsize: Land Size in Metres
+
+BuildingArea: Building Size in Metres
+
+YearBuilt: Year the house was built
+
+CouncilArea: Governing council for the area
+
+Lattitude: Self explanitory
+
+Longtitude: Self explanitory
+
+```{r echo=FALSE, fig.height=4, fig.width=4}
+par(mfrow=c(2,1))
+
+# grafico tipos/quantidades
+ggplot(df) +
+  aes(x = Type, fill = Type) +
+  geom_bar() +
+  scale_fill_hue() +
+  labs(x = "Type", y = "Quantidade") +
+  theme_minimal()
+
+# grafico regioes/quantidades
+df %>%
+  filter(!(Regionname %in% "#N/A")) %>%
+  ggplot() +
+  aes(x = Regionname, fill = Regionname) +
+  geom_bar() +
+  scale_fill_hue() +
+  labs(x = "Nome da RegiÃ£oo", y = "Quantidade") +
+  theme_minimal()
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# grafico distribuicao dos precos
+  require(highcharter)
+hchart(df$Price) 
+
+```
+
+Aqui observamos a distribuição dos preços da base de dados, onde há maior concentração de dados na região próxima a $ 1.200.000,00.
+
+Para que possasmos intender melhor a relação dos preços apresentaremos, abaixo, alguns gráficos que ajudarão a compreender melhor os preços residênciais.
+
+```{r echo=FALSE, fig.height=4, fig.width=4, message=FALSE, warning=FALSE}
+par(mfrow=c(2,2))
+
+# grafico preco/quartos
+df %>%
+  filter(Price >= 100000L & Price <= 11200000L | is.na(Price)) %>%
+  filter(Bedroom2 >= 
+           0 & Bedroom2 <= 22.2) %>%
+  ggplot() +
+  aes(x = Bedroom2, y = Price) +
+  geom_point(size = 1L, colour = "#0c4c8a") +
+  geom_smooth(method="auto", se=TRUE, fullrange=FALSE, level=0.95) +
+  labs(x = "Numero de quartos", y = "Preco") +
+  theme_minimal()
+
+# grafico preco/banheiros
+df %>%
+  filter(Price >= 100000L & Price <= 11200000L | is.na(Price)) %>%
+  filter(Bedroom2 >= 
+           0 & Bedroom2 <= 22.2) %>%
+  ggplot() +
+  aes(x = Bathroom, y = Price) +
+  geom_point(size = 1L, colour = "#0c4c8a") +
+  geom_smooth(method="auto", se=TRUE, fullrange=FALSE, level=0.95) +
+  labs(x = "Numero de banheiros", y = "Preco") +
+  theme_minimal()
+
+# grafico preco/vagas
+df %>%
+  filter(Price >= 100000L & Price <= 11200000L | is.na(Price)) %>%
+  filter(Bedroom2 >= 
+           0 & Bedroom2 <= 22.2 | is.na(Bedroom2)) %>%
+  filter(Car >= 0 & Car <= 21.8 | is.na(Car)) %>%
+  ggplot() +
+  aes(x = Car, y = Price) +
+  geom_point(size = 1L, colour = "#0c4c8a") +
+  geom_smooth(method="auto", se=TRUE, fullrange=FALSE, level=0.95) +
+  labs(x = "Vagas garagem", y = "Preco") +
+  theme_minimal()
+
+# grafico preco/rooms
+df %>%
+  filter(Price >= 100000L & Price <= 11200000L | is.na(Price)) %>%
+  filter(Bedroom2 >= 
+           0 & Bedroom2 <= 22.2 | is.na(Bedroom2)) %>%
+  ggplot() +
+  aes(x = Rooms, y = Price) +
+  geom_point(size = 1L, colour = "#0c4c8a") +
+  geom_smooth(method="auto", se=TRUE, fullrange=FALSE, level=0.95) +
+  labs(x = "Numero de comodos", y = "Preco") +
+  theme_minimal()
+```
+
+
+Abaixo verificamos os 10 bairros com as médias mais elevadas.
+
+```{r echo=FALSE}
+# precos medios por suburbio
+sub_df = df %>% filter(!is.na(Price)) %>%
+  group_by(Suburb) %>% 
+  summarise(Avg_sub_df = round(median(Price),0)) %>%
+  arrange(desc(Avg_sub_df))
+
+print(sub_df[0:10,])
+```
+
+Seguem os 10 pressos médios mais elevados relacionados aos números de quartos.
+
+```{r echo=FALSE}
+# preco medio por numero de quartos
+qua_df = df %>% filter(!is.na(Price)) %>%
+  group_by(Rooms) %>% 
+  summarise(Avg_qua_df = round(median(Price),0)) %>%
+  arrange(desc(Avg_qua_df))
+
+print(qua_df[0:10,])
+
+```
+
+Seguem os valores médios por tipo.
+
+```{r echo=FALSE}
+# precos medios por tipo
+sub_df = df %>% filter(!is.na(Price)) %>%
+  group_by(Type) %>% 
+  summarise(Avg_sub_df = round(median(Price),0)) %>%
+  arrange(desc(Avg_sub_df))
+
+print(sub_df[0:3,])
+```
+
+Outro ponto importante, que nÃo podemos de deixar de considerar é o número de NA'S.
+
+```{r echo=FALSE}
+sapply(df, function(x) sum(is.na(x)))
+```
+
+Há presença de outliers conforme gráfico abaixo
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# verificando outliers por tipo
+ggplot(df) +
+  aes(x = Type, y = Price, fill = Type) +
+  geom_boxplot() +
+  scale_fill_hue() +
+  theme_minimal()
+
+```
+
+Considerando o tamanho da base de dados, daqui já podemos avaliar que, itens como BuildingArea, Landsize, YearBuilt apresentam um número muito grande de NAs, sendo assim, excluíremos esses itens para a modelagem.
+
+Rooms e Bedroom2 representam o mesmo dado, assim, consideraremos, nesta análise apenas o Rooms (onde não há NAs)
+
+Latitude, Longitude e Postcode estão imputadas no endereço, assim, consideramos a latitude e a longitude na modelagem.
+
+```{r include=FALSE}
+# excluindo as variaveis com mais NAs
+excluir <- c("Landsize", "BuildingArea", "YearBuilt", "Bedroom2", "SellerG", "Postcode", "Address", "Date", 
+             "Suburb")
+df <- df[,!(names(df)%in% excluir)]
+head(df)
+
+# formatando os dados ##
+
+str(df)
+
+df$Rooms <- as.numeric(df$Rooms) # transformando Rooms em numerico
+df$Price <- as.numeric(df$Price) # transformando Price em numerico
+df$Bathroom <- as.numeric(df$Bathroom) # transformando banheiros em numerico
+df$Car <- as.numeric(df$Car) # transformando car em numerico 
+df$Distance <- as.numeric(df$Distance) #transformando distancia em numerico
+df$Propertycount <- as.numeric(df$Propertycount)
+
+```
+
+É de suma importância a avaliação do correlograma da base de dados:
+
+```{r echo=FALSE}
+library(psych)
+df2 <- na.omit(df) # sem NA
+
+```
+
+```{r echo=FALSE}
+
+pairs.panels(df2, method = "pearson", hist.col = "#00AFBB", density = TRUE, ellipses = TRUE)
+```
+
+## Random Forest 
+
+Para nossa análise utilizaremos o modelo Random Forest. Dividimos a base entre base de treino (75%) e base de teste (25%).
+
+Utilizamos as vareáveis: Rooms, Type, Method, Distance, Bethroom, Car, CouncilArea, Latititude, Longtitude, Regionname e Propetycount.
+
+Abaixo Podemos avaliar um gráfico da distribuição de profundidade mínima para as principais variáveis de acordo com a profundidade mínima média calculada, ou seja, tem relação direta com o caminho mais longo percorrido desde as "folhas" às raízes das árvores.
+
+```{r include=FALSE}
+## random forest
+
+require(randomForest)
+require(MLGL)
+require(moments)
+library(caret)
+library(randomForestExplainer)
+
+#separando treino e teste
+
+ctt <- function(data, size = 0.75, train = TRUE){
+  n_row = nrow(data)
+  total_row = size * n_row
+  train_sample <- 1: total_row
+  if (train == TRUE) {
+    return (data[train_sample, ])
+  } else {
+    return (data[-train_sample, ])
+  }
+}
+
+set.seed(12345)
+train <- ctt(df2, train = TRUE)
+train <- as.data.frame(train)
+
+test <- ctt(df2, train = FALSE)
+test <- as.data.frame(test)
+```
+
+
+```{r}
+# Create a Random Forest model with default parameters
+model1 <- randomForest(Price ~ ., data = train, importance = TRUE)
+
+```
+
+
+
+```{r include=FALSE}
+#avaliando a profundidade das variáveis.
+#devtools::install_github("MI2DataLab/randomForestExplainer")
+library(randomForestExplainer)
+
+min_depth_frame <- min_depth_distribution(model1)
+```
+
+Também podemos avaliar, através do gráfico, a quantidade que cada variável é apresentada nas "árvores" e o nível de profundidade médio.
+
+```{r echo=FALSE}
+plot_min_depth_distribution(min_depth_frame, mean_sample = "relevant_trees", k = 15)
+```
+
+Através deste outro gráfico, apresentamos o aumento do erro quadrado médio (eixo x), aumento do índice de pureza do nó (eixo y) e níveis de significância (cor dos pontos).
+
+```{r include=FALSE}
+importance_frame <- measure_importance(model1)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_multi_way_importance(importance_frame, x_measure = "mse_increase", y_measure = "node_purity_increase", size_measure = "p_value", no_of_labels = 5)
+```
+
+Também verificamos um correlograma das vareáveis utilizadas na floresta
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot_importance_ggpairs(importance_frame)
+```
+
+Avaliação dos resultados da regressão
+
+```{r include=FALSE}
+### previsão
+prev <- predict(model1, test)
+
+results <- function(y, z, data) {
+  SSE <- sum((z - mean(y))^2)
+  SST <- sum((y - mean(y))^2)
+  R2 <- SSE/SST
+  RMSE = sqrt(SSE/nrow(data))
+  
+  # Model performance metrics
+  data.frame(
+    RMSE = RMSE,
+    Rsquare = R2
+  )
+}
+```
+
+
+```{r echo=FALSE}
+result <- results(test$Price, prev, test)
+
+result
+```
+
+
+```{r echo=FALSE}
+erro <- test$Price - prev
+
+plot(erro)
+```
+
