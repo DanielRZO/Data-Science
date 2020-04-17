@@ -1,6 +1,6 @@
 ---
 title: "Analise Tecnica"
-author: "Daniel / Patricia"
+author: "Daniel"
 date: "05/04/2020"
 output:
   html_document: default
