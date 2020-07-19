@@ -35,10 +35,6 @@ Participants - all genders above 25+ years old to ensure a fully developed pre-f
 Content
 File contains information on participants drug treatment information along with their test scores.
 
-Acknowledgements
-Experiment was executed under the supervision of Mr. Almohalwas at UCLA.
-All aspects of the experiment such as experimental design, data collection and preprocessing was done from myself.
-
 Inspiration
 How does anti-anxiety medicine affect you differently by age?
 Is there a level of plateauing in effectiveness of anti-anxiety medicine - if so, at what point?
